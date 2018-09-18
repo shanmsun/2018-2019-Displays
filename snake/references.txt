@@ -1,0 +1,2 @@
+Reference for MCP23017:
+http://www.pibits.net/reference/mcp23017-and-i2cset-example.php
