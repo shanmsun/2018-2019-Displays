@@ -71,7 +71,7 @@ void setup() {
   randomSeed(analogRead(0));
   apple.x = random(8);
   apple.y = random(8);
-  apple.z = random(5);
+  apple.z = random(1,5);
   
   gamestate = on;
   ledState[snake[0].z][snake[0].y][snake[0].x] = true;
