@@ -40,7 +40,7 @@ CubeElement snake[320] = {0};
 CubeElement apple;
 
 //ledState[z][y][x]
-bool ledState[5][8][8] = {0};
+bool ledState[8][5][8] = {0};
 
 
 
@@ -54,8 +54,8 @@ void setup() {
     snake[i].z = 0;
   }
 
-  for (int z = 0; z < 5; z++) {
-    for (int y = 0; y < 8; y++) {
+  for (int z = 0; z < 8; z++) {
+    for (int y = 0; y < 5; y++) {
       for (int x = 0; x < 8; x++) {
         ledState[z][y][x] = false;
       }
@@ -70,8 +70,8 @@ void setup() {
   //init gamestate = on
   randomSeed(analogRead(0));
   apple.x = random(8);
-  apple.y = random(8);
-  apple.z = random(1,5);
+  apple.y = random(1,5);
+  apple.z = random(8);
   
   gamestate = on;
   ledState[snake[0].z][snake[0].y][snake[0].x] = true;
@@ -103,7 +103,7 @@ bool upd_ledmtx() {
     break;
 
   case y_up:
-    if (snake[0].y == 7) return false;
+    if (snake[0].y == 4) return false;
     snake[0].y++;
     break;
 
@@ -113,7 +113,7 @@ bool upd_ledmtx() {
     break;
 
   case z_up:
-    if (snake[0].z == 4) return false;
+    if (snake[0].z == 7) return false;
     snake[0].z++;
     break;
 
@@ -160,8 +160,8 @@ bool upd_ledmtx() {
   //generate new apple 
   if (snake[0] == apple) {
     int cnt = random(320 - snakeSize);
-    for (int i = 0; i < 5; i++) {
-      for (int j = 0; j < 8; j++) {
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 5; j++) {
         for (int k = 0; k < 8; k++) {
           //find the cnt'th spot in led that is free
           if (ledState[i][j][k] == false) cnt--;
@@ -203,8 +203,8 @@ void loop() {
     }
   }
 
-  for (int z = 0; z < 5; z++) {
-    for (int y = 0; y < 8; y++) {
+  for (int z = 0; z < 8; z++) {
+    for (int y = 0; y < 5; y++) {
       for (int x = 0; x < 8; x++) {
         if (ledState[z][y][x]) {
           digitalWrite(LED_BUILTIN, LOW);
