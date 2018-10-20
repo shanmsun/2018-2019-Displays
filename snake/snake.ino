@@ -34,7 +34,8 @@ void CubeElement::operator=(const CubeElement &ce) {
   z = ce.z;
 }
 
-int score = 0;
+int player_score = 0;
+int best_score = 0;
 int snakeSize = 320;
 CubeElement snake[320] = {0};
 CubeElement apple;
@@ -140,7 +141,7 @@ bool upd_ledmtx() {
 
   //got apple, length+1
   if (snake[0] == apple) {
-    score++;
+    player_score++;
     snakeSize++;
   }
   //erasing previous tail's position
