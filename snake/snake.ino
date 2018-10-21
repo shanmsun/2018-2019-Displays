@@ -1,3 +1,24 @@
+//fixed constatnts
+#define MAX_X 8
+#define MAX_Y 5
+#define MAX_Z 8
+//in miliseconds
+#define LAYER_TIMEOUT 4
+#define MOVE_SNAKE_DELAY 750 
+
+//pins for the led cube
+const int LED_PIN_X[MAX_Y][MAX_X] = {
+    {2,3,4,5,6,7,8,9},
+    {22,23,24,25,26,27,28,29},
+    {30,31,32,33,34,35,36,37},
+    {38,39,40,41,42,43,44,45},
+    {46,47,48,49,50,51,52,53}
+};
+
+const int LED_PIN_Z[MAX_Z] = {
+  10,11,12,13,14,15,16,17
+};
+
 enum SnakeDirection {
   x_up,
   x_down,
@@ -61,6 +82,17 @@ void setup() {
         ledState[z][y][x] = false;
       }
     }
+  }
+
+  //set the led cube pins as outputs
+  for(int x=0; x<MAX_X; x++){
+    for(int y=0; y<MAX_Y; y++){
+      pinMode(LED_PIN_X[y][x], OUTPUT);
+    }
+  }
+  //set the led cube z pins output
+  for(int z=0; z<MAX_Z; z++){
+    pinMode(LED_PIN_Z[z], OUTPUT);
   }
 
   //Ann
@@ -184,6 +216,44 @@ bool upd_ledmtx() {
   return true;
 }
 
+/**
+ * Reads the current values of ledState. If the value is true, then it will turn the led on
+ * It loops through all the layers, turning only 1 layer on at a time.
+ * The delay is set to LAYER_TIMEOUT
+ */
+void setLedStateToCube(){
+  for(int z=0; z<MAX_Z; z++){
+    for(int y=0; y<MAX_Y; y++){
+      for(int x=0; x<MAX_X; x++){
+        if(ledState[z][y][x]){
+          digitalWrite(LED_PIN_X[y][x], HIGH);   
+        }
+        else{
+          digitalWrite(LED_PIN_X[y][x], LOW);
+        }
+      }
+    }
+    digitalWrite(LED_PIN_Z[z], HIGH);
+    //show the current layer before clearing to the next one
+    delay(LAYER_TIMEOUT);
+    //turn the layer off before starting the next one
+    digitalWrite(LED_PIN_Z[z], LOW);
+  }
+  return;
+}
+
+/**
+ * We want to keep the appearance that all the leds are on at the same time,
+ * but once we loop through the MAX_Z layers, if we return to update the snake location,
+ * we will move the snake once every (8*LAYER_TIMEOUT) (once every 32 milisecons). To 
+ * prevent this, we will draw the led cube until MOVE_SNAKE_DELAY has been reached. At
+ * which point, we will return to allow the snake position to update.
+ */
+void drawLedCube(){
+  for(int i=0; i<(MOVE_SNAKE_DELAY/LAYER_TIMEOUT*MAX_Z); i++)
+    setLedStateToCube();
+}
+
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -195,28 +265,7 @@ void loop() {
   upd_ledmtx();
 
   //Gio
-  for (int i = 0; i < snakeSize; i++) {
-    if (snake[i].x != 0 || snake[i].y != 0 || snake[i].z != 0) {
-      digitalWrite(LED_BUILTIN, LOW);
-    }
-    else {
-      digitalWrite(LED_BUILTIN, HIGH);
-    }
-  }
-
-  for (int z = 0; z < 8; z++) {
-    for (int y = 0; y < 5; y++) {
-      for (int x = 0; x < 8; x++) {
-        if (ledState[z][y][x]) {
-          digitalWrite(LED_BUILTIN, LOW);
-        }
-        else {
-          digitalWrite(LED_BUILTIN, HIGH);
-        }
-      }
-    }
-  }
-
+  drawLedCube();
 }
 
 void getButtonInput() {
