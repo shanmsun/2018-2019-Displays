@@ -62,7 +62,7 @@ CubeElement snake[320] = {0};
 CubeElement apple;
 
 //ledState[z][y][x]
-bool ledState[8][5][8] = {0};
+bool ledState[MAX_Z][MAX_Y][MAX_X] = {0};
 
 
 
@@ -84,17 +84,6 @@ void setup() {
     }
   }
 
-  //set the led cube pins as outputs
-  for(int x=0; x<MAX_X; x++){
-    for(int y=0; y<MAX_Y; y++){
-      pinMode(LED_PIN_X[y][x], OUTPUT);
-    }
-  }
-  //set the led cube z pins output
-  for(int z=0; z<MAX_Z; z++){
-    pinMode(LED_PIN_Z[z], OUTPUT);
-  }
-
   //Ann
 
   //Jackie
@@ -111,7 +100,16 @@ void setup() {
   ledState[apple.z][apple.y][apple.x] = true;
 
   //Gio
-  pinMode(LED_BUILTIN, OUTPUT);
+  //set the led cube pins as outputs
+  for(int x=0; x<MAX_X; x++){
+    for(int y=0; y<MAX_Y; y++){
+      pinMode(LED_PIN_X[y][x], OUTPUT);
+    }
+  }
+  //set the led cube z pins output
+  for(int z=0; z<MAX_Z; z++){
+    pinMode(LED_PIN_Z[z], OUTPUT);
+  }
 
 }
 
