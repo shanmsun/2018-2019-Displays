@@ -3,7 +3,7 @@
 #define MAX_Y 2
 #define MAX_Z 2
 //in miliseconds
-#define LAYER_TIMEOUT 4
+#define LAYER_TIMEOUT 2
 #define MOVE_SNAKE_DELAY 3000
 
 //pins for the led cube
@@ -42,6 +42,9 @@ void setLedStateToCube(){
     //turn the layer off before starting the next one
     digitalWrite(LED_PIN_Z[z], LOW);
   }
+  delay(LAYER_TIMEOUT);
+  delay(LAYER_TIMEOUT);
+  delay(LAYER_TIMEOUT);
   delay(LAYER_TIMEOUT);
   delay(LAYER_TIMEOUT);
   delay(LAYER_TIMEOUT);
