@@ -45,6 +45,9 @@ void setLedStateToCube(){
   delay(LAYER_TIMEOUT);
   delay(LAYER_TIMEOUT);
   delay(LAYER_TIMEOUT);
+  delay(LAYER_TIMEOUT);
+  delay(LAYER_TIMEOUT);
+  delay(LAYER_TIMEOUT);
   return;
 }
 
