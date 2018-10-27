@@ -257,7 +257,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   //Ann
-  getButtonInput();
+  getInput();
 
   //Jackie
   upd_ledmtx();
