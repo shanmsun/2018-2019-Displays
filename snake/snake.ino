@@ -8,15 +8,15 @@
 
 //pins for the led cube
 const int LED_PIN_X[MAX_Y][MAX_X] = {
-    {2,3,4,5,6,7,8,9},
-    {22,23,24,25,26,27,28,29},
-    {30,31,32,33,34,35,36,37},
-    {38,39,40,41,42,43,44,45},
-    {46,47,48,49,50,51,52,53}
+    {2,3,4,5,6,7,8,9},          //A
+    {22,23,24,25,26,27,28,29},  //B
+    {30,31,32,33,34,35,36,37},  //C
+    {38,39,40,41,42,43,44,45},  //D
+    {46,47,48,49,50,51,52,53}   //E
 };
 
 const int LED_PIN_Z[MAX_Z] = {
-  10,11,12,13,14,15,16,17
+  10,11,12,13,14,15,16,17       //starting from te bottom{1, 2, 3, 4, 5, 6, 7, 8}
 };
 
 enum SnakeDirection {
@@ -104,11 +104,13 @@ void setup() {
   for(int x=0; x<MAX_X; x++){
     for(int y=0; y<MAX_Y; y++){
       pinMode(LED_PIN_X[y][x], OUTPUT);
+      digitalWrite(LED_PIN_X[y][x], LOW);
     }
   }
   //set the led cube z pins output
   for(int z=0; z<MAX_Z; z++){
     pinMode(LED_PIN_Z[z], OUTPUT);
+    digitalWrite(LED_PIN_Z[z], HIGH);
   }
 
 }
@@ -224,18 +226,18 @@ void setLedStateToCube(){
     for(int y=0; y<MAX_Y; y++){
       for(int x=0; x<MAX_X; x++){
         if(ledState[z][y][x]){
-          digitalWrite(LED_PIN_X[y][x], HIGH);   
+          digitalWrite(LED_PIN_X[y][x], HIGH); 
         }
         else{
           digitalWrite(LED_PIN_X[y][x], LOW);
         }
       }
     }
-    digitalWrite(LED_PIN_Z[z], HIGH);
+    digitalWrite(LED_PIN_Z[z], LOW);
     //show the current layer before clearing to the next one
     delay(LAYER_TIMEOUT);
     //turn the layer off before starting the next one
-    digitalWrite(LED_PIN_Z[z], LOW);
+    digitalWrite(LED_PIN_Z[z], HIGH);
   }
   return;
 }
@@ -252,18 +254,37 @@ void drawLedCube(){
     setLedStateToCube();
 }
 
+/**
+ * Set one led high, wait 500 msec then set it low, and turn on the next one
+ */
+void testEachLed(){
+  for(int z=0; z<MAX_Z; z++){
+    digitalWrite(LED_PIN_Z[z], LOW);
+    for(int y=0; y<MAX_Y; y++){
+      for(int x=0; x<MAX_X; x++){
+        digitalWrite(LED_PIN_X[y][x], HIGH);
+        delay(500);
+        digitalWrite(LED_PIN_X[y][x], LOW);
+      }
+    }
+    digitalWrite(LED_PIN_Z[z], HIGH);
+  }
+}
+
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  testEachLed();
+/*
   //Ann
-  getInput();
+  getButtonInput();
 
   //Jackie
   upd_ledmtx();
 
   //Gio
   drawLedCube();
+  */
 }
 
 void getButtonInput() {
