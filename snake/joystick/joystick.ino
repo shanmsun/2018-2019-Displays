@@ -6,7 +6,7 @@ int joystick_right = A2; //16
 int joystick_left = A3; //17
 int button_up = A4; //18
 int button_down = A5; //19
-int start = A6;
+int start = A6; //20
 
 enum SnakeDirection {
   x_up,
@@ -123,7 +123,34 @@ void getInput(){
   }
 }
 
+bool button_debounce2(int input[2]){
+  int button_readVal1 = digitalRead(input[0]);
+ 
+  if (button_readVal1 != input[1]){
+    //delay (DEBOUNCE_TIME);
+    //setLedStateToCube();
+    int debounce_time1 = millis();
+    Serial.println(debounce_time1);
+    
+    if(millis() - debounce_time1 > DEBOUNCE_TIME){
+      int button_readVal2 = digitalRead(input[0]);
+      
+      if (button_readVal1 == button_readVal2){ //still the same input value -> not a noise
+        input[1] = button_readVal2;
+        if (button_readVal2 == 0){//button is pressed
+          Serial.println("pressed");
+          return true;
+        }
+        else{
+          Serial.println("released");
+        }
+      }  
+    }
+  }
+  return false;
+}
+
 void loop() {
-  getInput();
+  button_debounce2(input_state[4]);
 }
 

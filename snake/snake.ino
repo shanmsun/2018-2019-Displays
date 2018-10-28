@@ -5,11 +5,15 @@
 #define MAX_Y 5
 #define MAX_Z 8
 //in miliseconds
-#define LAYER_TIMEOUT 4
-#define MOVE_SNAKE_DELAY 750 
+#define LAYER_TIMEOUT 1
+#define DRAW_CUBE_NUM 1
+#define MOVE_SNAKE_DELAY 30 
+#define SNAKE_SIZE_MAX 320
 //for score display
 #define PLAYERSCORE_ADDRESS 0x70
 #define BESTSCORE_ADDRESS 0x77
+//for button debounce
+#define DEBOUNCE_TIME 70
 
 Adafruit_7segment playerScore_dis = Adafruit_7segment();
 Adafruit_7segment bestScore_dis = Adafruit_7segment();
@@ -39,6 +43,7 @@ SnakeDirection snakeDirection;
 
 enum GameState {
   on,
+  off,
   win,
   ate_body,
   hit_wall
@@ -66,33 +71,63 @@ void CubeElement::operator=(const CubeElement &ce) {
 int playerScore = 0;
 int bestScore = 0;
 
-int snakeSize = 320;
-CubeElement snake[320] = {0};
+int joystick_up = A0; //14
+int joystick_down = A1; //15 
+int joystick_right = A2; //16
+int joystick_left = A3; //17
+int button_up = A4; //18
+int button_down = A5; //19
+int start = A6; //20
+
+int input_state[6][2] = {
+  {joystick_up, 1}, //{pin #, recent_State}
+  {joystick_down, 1},
+  {joystick_right, 1},
+  {joystick_left, 1},
+  {button_up, 1},
+  {button_down, 1}
+};
+
+int start_button_state[2] = {start, 1};
+int input_state_len = sizeof(input_state)/sizeof(input_state[0]);
+
+int snakeSize = 2; //max is 320
+int snakeMoveDelay = 0;
+CubeElement snake[SNAKE_SIZE_MAX] = {0};
 CubeElement apple;
 
 //ledState[z][y][x]
 bool ledState[MAX_Z][MAX_Y][MAX_X] = {0};
 
-
-
-void setup() {
-  // put your setup code here, to run once:
+void initSnakeGame(){
   snakeDirection = z_up;
-
-  for (int i = 0; i < snakeSize; i++) {
+  playerScore = 0;
+  
+  for (int i = 0; i < SNAKE_SIZE_MAX; i++) {
     snake[i].x = 0;
     snake[i].y = 0;
     snake[i].z = 0;
   }
-
-  for (int z = 0; z < 8; z++) {
-    for (int y = 0; y < 5; y++) {
-      for (int x = 0; x < 8; x++) {
-        ledState[z][y][x] = false;
+  snake[0].z = 1;
+  
+  snakeSize = 2;
+  
+  apple.x = random(8);
+  apple.y = random(1,5);
+  apple.z = random(8);
+  for (int z=0; z<MAX_Z; z++){
+    for(int x=0; x<MAX_X; x++){
+      for(int y=0; y<MAX_Y; y++){
+        ledState[z][y][x] = false; 
       }
-    }
+    } 
   }
+  ledState[snake[0].z][snake[0].y][snake[0].x] = true;
+  ledState[apple.z][apple.y][apple.x] = true;
+}
 
+void setup() {
+  // put your setup code here, to run once:
   //Ann
   //7seg setup
   playerScore_dis.begin(PLAYERSCORE_ADDRESS);
@@ -104,18 +139,18 @@ void setup() {
   playerScore_dis.blinkRate(0); //no blinking
   bestScore_dis.blinkRate(0);
 
+  pinMode(joystick_up, INPUT_PULLUP);
+  pinMode(joystick_down, INPUT_PULLUP);
+  pinMode(joystick_right, INPUT_PULLUP);
+  pinMode(joystick_left, INPUT_PULLUP);
+  pinMode(button_up, INPUT_PULLUP);
+  pinMode(button_down, INPUT_PULLUP);
+  pinMode(start, INPUT_PULLUP);
+
   //Jackie
-  //init snake at (0,0,0)
-  //init apple randomly
-  //init gamestate = on
   randomSeed(analogRead(0));
-  apple.x = random(8);
-  apple.y = random(1,5);
-  apple.z = random(8);
-  
-  gamestate = on;
-  ledState[snake[0].z][snake[0].y][snake[0].x] = true;
-  ledState[apple.z][apple.y][apple.x] = true;
+  gamestate = off;
+  initSnakeGame();
 
   //Gio
   //set the led cube pins as outputs
@@ -268,7 +303,7 @@ void setLedStateToCube(){
  * which point, we will return to allow the snake position to update.
  */
 void drawLedCube(){
-  for(int i=0; i<(MOVE_SNAKE_DELAY/LAYER_TIMEOUT*MAX_Z); i++)
+  for(int i=0; i<DRAW_CUBE_NUM; i++)
     setLedStateToCube();
 }
 
@@ -289,18 +324,9 @@ void testEachLed(){
   }
 }
 
-void display_score(int playerScore){
-  // when playerScore exceeds bestScore, increment & display it
-  if (playerScore > bestScore){
-    bestScore = playerScore;
-  }
-  
-  playerScore_dis.print(playerScore);
-  playerScore_dis.writeDisplay();
-  bestScore_dis.print(bestScore);
-  bestScore_dis.writeDisplay();
-}
-
+/**
+ * Test the layers of the led cube
+ */
 void testLayers(){
   digitalWrite(LED_PIN_X[0][0], HIGH);
   digitalWrite(LED_PIN_X[MAX_Y-1][0], HIGH);
@@ -314,21 +340,147 @@ void testLayers(){
   }
 }
 
+void display_score(int playerScore){
+  // when playerScore exceeds bestScore, increment & display it
+  if (playerScore > bestScore){
+    bestScore = playerScore;
+  }
+  
+  playerScore_dis.print(playerScore);
+  playerScore_dis.writeDisplay();
+  bestScore_dis.print(bestScore);
+  bestScore_dis.writeDisplay();
+}
+
+//pressed -> read = 0
+//open -> read = 1 due to INPUT_PULLUP
+bool start_button_debounce(int input[2]){
+  int button_readVal1 = digitalRead(input[0]);
+  
+  if (button_readVal1 != input[1]){
+    delay (DEBOUNCE_TIME);
+    int button_readVal2 = digitalRead(input[0]);
+    
+    if (button_readVal1 == button_readVal2){ //still the same input value -> not a noise
+      //Serial.println("state changed");
+      input[1] = button_readVal2;
+      if (button_readVal2 == 0){//button is pressed
+        Serial.println("pressed");
+        return true;
+      }
+      else{
+        Serial.println("released");
+      }
+    }
+  }
+  return false;
+}
+
+bool button_debounce(int input[2]){
+  int button_readVal1 = digitalRead(input[0]);
+  
+  if (button_readVal1 != input[1]){
+    //delay (DEBOUNCE_TIME);
+    setLedStateToCube();
+    int button_readVal2 = digitalRead(input[0]);
+    
+    if (button_readVal1 == button_readVal2){ //still the same input value -> not a noise
+      //Serial.println("state changed");
+      input[1] = button_readVal2;
+      if (button_readVal2 == 0){//button is pressed
+        Serial.println("pressed");
+        return true;
+      }
+      else{
+        Serial.println("released");
+      }
+    }
+  }
+  return false;
+}
+
+void determine_inputDirection(int button_pin){
+      Serial.println(button_pin); //debugging
+      switch (button_pin){
+        case A0: //14
+          if (snakeDirection != y_down){
+            Serial.println("y_up");
+            snakeDirection = y_up;            
+          }
+          break;
+     
+        case A1: //15
+          if (snakeDirection != y_up){
+            Serial.println("y_down");
+            snakeDirection = y_down;
+          }
+          break;
+  
+        case A2: //16
+          if (snakeDirection != x_down){
+            Serial.println("x_up");
+            snakeDirection = x_up;
+          }
+          break;
+  
+        case A3: //17
+          if (snakeDirection != x_up){
+            Serial.println("x_down");
+            snakeDirection = x_down;          
+          }
+          break;
+  
+        case A4: //18
+          if (snakeDirection != z_down){
+            Serial.println("z_up");
+            snakeDirection = z_up;
+          }
+          break;
+        
+        case A5: //19
+          if (snakeDirection != z_up){
+            Serial.println("z_down");
+            snakeDirection =  z_down; 
+          }
+          break;
+      }
+}
+
+void getInput(){
+   for (int i = 0; i < input_state_len; i++){
+      bool button_pressed = button_debounce(input_state[i]);
+      if (button_pressed){
+        determine_inputDirection(input_state[i][0]);
+      }
+  }
+}
 void loop() {
-  // put your main code here, to run repeatedly:
-  testEachLed();
-/*
-  //Ann
-  getButtonInput();
+  /*(// put your main code here, to run repeatedly:
+  testEachLed();*/
+  if (start_button_debounce(start_button_state)){
+    gamestate = on;
+    initSnakeGame();
+  }
 
-  //Jackie
-  upd_ledmtx();
-
-  //Ann
+  if (gamestate == on){
+    //Ann
+    getInput();
+  
+    //Jackie
+    if(snakeMoveDelay == MOVE_SNAKE_DELAY){
+      upd_ledmtx();
+      //display_score(playerScore);
+      snakeMoveDelay = 0;  
+    }
+    else{
+      snakeMoveDelay++;
+    }
+  
+    //Gio
+    drawLedCube();    
+    
+  }
   display_score(playerScore);
 
-  //Gio
-  drawLedCube();
-  */
 }
 
