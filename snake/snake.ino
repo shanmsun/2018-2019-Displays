@@ -1,3 +1,5 @@
+#include "Adafruit_LEDBackpack.h"
+
 //fixed constatnts
 #define MAX_X 8
 #define MAX_Y 5
@@ -5,18 +7,24 @@
 //in miliseconds
 #define LAYER_TIMEOUT 4
 #define MOVE_SNAKE_DELAY 750 
+//for score display
+#define PLAYERSCORE_ADDRESS 0x70
+#define BESTSCORE_ADDRESS 0x77
+
+Adafruit_7segment playerScore_dis = Adafruit_7segment();
+Adafruit_7segment bestScore_dis = Adafruit_7segment();
 
 //pins for the led cube
 const int LED_PIN_X[MAX_Y][MAX_X] = {
-    {2,3,4,5,6,7,8,9},          //A
-    {22,23,24,25,26,27,28,29},  //B
-    {30,31,32,33,34,35,36,37},  //C
-    {38,39,40,41,42,43,44,45},  //D
-    {46,47,48,49,50,51,52,53}   //E
+    {42,49,46,47,43,48,44,51},          //A
+    {41,40,24,39,36,45,50,35},  //B
+    {37,22,33,29,34,26,38,25},  //C
+    {13,31,32,24,27,28,23,4},  //D
+    {12,11,10,9,8,7,6,5}   //E
 };
 
 const int LED_PIN_Z[MAX_Z] = {
-  10,11,12,13,14,15,16,17       //starting from te bottom{1, 2, 3, 4, 5, 6, 7, 8}
+  16,17,14,15,18,52,54,19       //starting from te bottom{1, 2, 3, 4, 5, 6, 7, 8}
 };
 
 enum SnakeDirection {
@@ -55,8 +63,9 @@ void CubeElement::operator=(const CubeElement &ce) {
   z = ce.z;
 }
 
-int player_score = 0;
-int best_score = 0;
+int playerScore = 0;
+int bestScore = 0;
+
 int snakeSize = 320;
 CubeElement snake[320] = {0};
 CubeElement apple;
@@ -85,6 +94,15 @@ void setup() {
   }
 
   //Ann
+  //7seg setup
+  playerScore_dis.begin(PLAYERSCORE_ADDRESS);
+  bestScore_dis.begin(BESTSCORE_ADDRESS);
+
+  playerScore_dis.setBrightness(15); //full brightness
+  bestScore_dis.setBrightness(15);
+
+  playerScore_dis.blinkRate(0); //no blinking
+  bestScore_dis.blinkRate(0);
 
   //Jackie
   //init snake at (0,0,0)
@@ -173,7 +191,7 @@ bool upd_ledmtx() {
 
   //got apple, length+1
   if (snake[0] == apple) {
-    player_score++;
+    playerScore++;
     snakeSize++;
   }
   //erasing previous tail's position
@@ -271,6 +289,17 @@ void testEachLed(){
   }
 }
 
+void display_score(int playerScore){
+  // when playerScore exceeds bestScore, increment & display it
+  if (playerScore > bestScore){
+    bestScore = playerScore;
+  }
+  
+  playerScore_dis.print(playerScore);
+  playerScore_dis.writeDisplay();
+  bestScore_dis.print(bestScore);
+  bestScore_dis.writeDisplay();
+}
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -282,11 +311,11 @@ void loop() {
   //Jackie
   upd_ledmtx();
 
+  //Ann
+  display_score(playerScore);
+
   //Gio
   drawLedCube();
   */
 }
 
-void getButtonInput() {
-
-}
