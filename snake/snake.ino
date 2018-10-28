@@ -16,15 +16,15 @@ Adafruit_7segment bestScore_dis = Adafruit_7segment();
 
 //pins for the led cube
 const int LED_PIN_X[MAX_Y][MAX_X] = {
-    {42,49,46,47,43,48,44,51},          //A
-    {41,40,24,39,36,45,50,35},  //B
-    {37,22,33,29,34,26,38,25},  //C
-    {13,31,32,24,27,28,23,4},  //D
+    {37,36,35,34,38,40,42,43},          //A
+    {15,16,3,2,23,41,39,17},  //B
+    {14,24,22,30,18,28,19,29},  //C
+    {13,31,32,25,27,33,26,4},  //D
     {12,11,10,9,8,7,6,5}   //E
 };
 
 const int LED_PIN_Z[MAX_Z] = {
-  16,17,14,15,18,52,54,19       //starting from te bottom{1, 2, 3, 4, 5, 6, 7, 8}
+  46,51,44,45,47,48,49,50       //starting from te bottom{1, 2, 3, 4, 5, 6, 7, 8}
 };
 
 enum SnakeDirection {
@@ -299,6 +299,19 @@ void display_score(int playerScore){
   playerScore_dis.writeDisplay();
   bestScore_dis.print(bestScore);
   bestScore_dis.writeDisplay();
+}
+
+void testLayers(){
+  digitalWrite(LED_PIN_X[0][0], HIGH);
+  digitalWrite(LED_PIN_X[MAX_Y-1][0], HIGH);
+  digitalWrite(LED_PIN_X[0][MAX_X-1], HIGH);
+  digitalWrite(LED_PIN_X[MAX_Y-1][MAX_X-1], HIGH);
+
+   for(int z=0; z<MAX_Z; z++){
+    digitalWrite(LED_PIN_Z[z], LOW);
+    delay(500);
+    digitalWrite(LED_PIN_Z[z], HIGH);
+  }
 }
 
 void loop() {
