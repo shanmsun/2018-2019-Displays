@@ -9,6 +9,8 @@
 #define DRAW_CUBE_NUM 1
 #define MOVE_SNAKE_DELAY 30 
 #define SNAKE_SIZE_MAX 320
+#define BLINK_APPLE_DELAY 15
+#define GAME_OVER_DELAY 175
 //for score display
 #define PLAYERSCORE_ADDRESS 0x70
 #define BESTSCORE_ADDRESS 0x77
@@ -95,6 +97,9 @@ int snakeSize = 2; //max is 320
 int snakeMoveDelay = 0;
 CubeElement snake[SNAKE_SIZE_MAX] = {0};
 CubeElement apple;
+int blinkApple = 0;
+int gameOverDelay = 0;
+int gameOverDelayCount = 0;
 
 //ledState[z][y][x]
 bool ledState[MAX_Z][MAX_Y][MAX_X] = {0};
@@ -102,6 +107,9 @@ bool ledState[MAX_Z][MAX_Y][MAX_X] = {0};
 void initSnakeGame(){
   snakeDirection = z_up;
   playerScore = 0;
+  blinkApple = 0;
+  gameOverDelay = 0;
+  gameOverDelayCount = 0;
   
   for (int i = 0; i < SNAKE_SIZE_MAX; i++) {
     snake[i].x = 0;
@@ -275,6 +283,20 @@ bool upd_ledmtx() {
  * The delay is set to LAYER_TIMEOUT
  */
 void setLedStateToCube(){
+  //blink the apple
+  if(blinkApple < BLINK_APPLE_DELAY){
+    ledState[apple.z][apple.y][apple.x] = true;
+    blinkApple++;
+  }
+  else if(blinkApple < BLINK_APPLE_DELAY*2){
+    ledState[apple.z][apple.y][apple.x] = false;
+    blinkApple++;
+  }
+  else{
+    ledState[apple.z][apple.y][apple.x] = false;
+    blinkApple = 0;
+  }
+  
   for(int z=0; z<MAX_Z; z++){
     for(int y=0; y<MAX_Y; y++){
       for(int x=0; x<MAX_X; x++){
@@ -454,6 +476,16 @@ void getInput(){
       }
   }
 }
+
+void clearLedState(){
+  for(int z=0; z<MAX_Z; z++){
+    for(int y=0; y<MAX_Y; y++){
+      for(int x=0; x<MAX_X; x++){
+        ledState[z][y][x] = false;
+      }
+    }
+  }
+}
 void loop() {
   /*(// put your main code here, to run repeatedly:
   testEachLed();*/
@@ -479,6 +511,24 @@ void loop() {
     //Gio
     drawLedCube();    
     
+  }
+  else{
+    if(gameOverDelayCount < 8){
+      if(gameOverDelay < GAME_OVER_DELAY){
+        gameOverDelay++;
+      }
+      else if(gameOverDelay < GAME_OVER_DELAY*2){
+        setLedStateToCube();
+        gameOverDelay++;
+      }
+      else{
+        gameOverDelay = 0;
+        gameOverDelayCount++;
+      }
+    }
+    else {
+      clearLedState();
+    }
   }
   display_score(playerScore);
 
