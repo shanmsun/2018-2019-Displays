@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #include "Adafruit_LEDBackpack.h"
 
 //fixed constatnts
@@ -7,7 +8,7 @@
 //in miliseconds
 #define LAYER_TIMEOUT 1
 #define DRAW_CUBE_NUM 1
-#define MOVE_SNAKE_DELAY 30 
+#define MOVE_SNAKE_DELAY 30
 #define SNAKE_SIZE_MAX 320
 #define BLINK_APPLE_DELAY 15
 #define GAME_OVER_DELAY 175
@@ -16,6 +17,10 @@
 #define BESTSCORE_ADDRESS 0x77
 //for button debounce
 #define DEBOUNCE_TIME 70
+//addresses for eeprom
+#define BEST_SCORE_ADDR 0 //uses 0, 1 to score the best score
+#define GAME_PLAY_COUNT_ADDR 2 //uses 2, 3 to store the times played.
+#define GAME_SCORE_COUNT_ADDR 4 //base + player score*2. This 2 byte address will store how many ppl have gotten this score.
 
 Adafruit_7segment playerScore_dis = Adafruit_7segment();
 Adafruit_7segment bestScore_dis = Adafruit_7segment();
@@ -74,7 +79,7 @@ int playerScore = 0;
 int bestScore = 0;
 
 int joystick_up = A0; //14
-int joystick_down = A1; //15 
+int joystick_down = A1; //15
 int joystick_right = A2; //16
 int joystick_left = A3; //17
 int button_up = A4; //18
@@ -110,25 +115,25 @@ void initSnakeGame(){
   blinkApple = 0;
   gameOverDelay = 0;
   gameOverDelayCount = 0;
-  
+
   for (int i = 0; i < SNAKE_SIZE_MAX; i++) {
     snake[i].x = 0;
     snake[i].y = 0;
     snake[i].z = 0;
   }
   snake[0].z = 1;
-  
+
   snakeSize = 2;
-  
+
   apple.x = random(8);
   apple.y = random(1,5);
   apple.z = random(8);
   for (int z=0; z<MAX_Z; z++){
     for(int x=0; x<MAX_X; x++){
       for(int y=0; y<MAX_Y; y++){
-        ledState[z][y][x] = false; 
+        ledState[z][y][x] = false;
       }
-    } 
+    }
   }
   ledState[snake[0].z][snake[0].y][snake[0].x] = true;
   ledState[apple.z][apple.y][apple.x] = true;
@@ -136,6 +141,7 @@ void initSnakeGame(){
 
 void setup() {
   // put your setup code here, to run once:
+  bestScore = readIntEeprom(BEST_SCORE_ADDR);
   //Ann
   //7seg setup
   playerScore_dis.begin(PLAYERSCORE_ADDRESS);
@@ -245,13 +251,13 @@ bool upd_ledmtx() {
       ledState[snake[snakeSize - 1].z][snake[snakeSize - 1].y][snake[snakeSize - 1].x] = false;
   }
 
-  //updating the snake body 
+  //updating the snake body
   for (int i = snakeSize - 1; i > 0; i--) {
     if (i == 1) snake[i] = prev_head;
     else snake[i] = snake[i - 1];
   }
 
-  //generate new apple 
+  //generate new apple
   if (snake[0] == apple) {
     int cnt = random(320 - snakeSize);
     for (int i = 0; i < 8; i++) {
@@ -270,7 +276,7 @@ bool upd_ledmtx() {
         }
       }
     }
-    
+
   }
   else
     ledState[apple.z][apple.y][apple.x] = true;
@@ -296,12 +302,12 @@ void setLedStateToCube(){
     ledState[apple.z][apple.y][apple.x] = false;
     blinkApple = 0;
   }
-  
+
   for(int z=0; z<MAX_Z; z++){
     for(int y=0; y<MAX_Y; y++){
       for(int x=0; x<MAX_X; x++){
         if(ledState[z][y][x]){
-          digitalWrite(LED_PIN_X[y][x], HIGH); 
+          digitalWrite(LED_PIN_X[y][x], HIGH);
         }
         else{
           digitalWrite(LED_PIN_X[y][x], LOW);
@@ -320,7 +326,7 @@ void setLedStateToCube(){
 /**
  * We want to keep the appearance that all the leds are on at the same time,
  * but once we loop through the MAX_Z layers, if we return to update the snake location,
- * we will move the snake once every (8*LAYER_TIMEOUT) (once every 32 milisecons). To 
+ * we will move the snake once every (8*LAYER_TIMEOUT) (once every 32 milisecons). To
  * prevent this, we will draw the led cube until MOVE_SNAKE_DELAY has been reached. At
  * which point, we will return to allow the snake position to update.
  */
@@ -366,8 +372,9 @@ void display_score(int playerScore){
   // when playerScore exceeds bestScore, increment & display it
   if (playerScore > bestScore){
     bestScore = playerScore;
+    writeIntEeprom(BEST_SCORE_ADDR, bestScore);
   }
-  
+
   playerScore_dis.print(playerScore);
   playerScore_dis.writeDisplay();
   bestScore_dis.print(bestScore);
@@ -378,11 +385,11 @@ void display_score(int playerScore){
 //open -> read = 1 due to INPUT_PULLUP
 bool start_button_debounce(int input[2]){
   int button_readVal1 = digitalRead(input[0]);
-  
+
   if (button_readVal1 != input[1]){
     delay (DEBOUNCE_TIME);
     int button_readVal2 = digitalRead(input[0]);
-    
+
     if (button_readVal1 == button_readVal2){ //still the same input value -> not a noise
       //Serial.println("state changed");
       input[1] = button_readVal2;
@@ -400,12 +407,12 @@ bool start_button_debounce(int input[2]){
 
 bool button_debounce(int input[2]){
   int button_readVal1 = digitalRead(input[0]);
-  
+
   if (button_readVal1 != input[1]){
     //delay (DEBOUNCE_TIME);
     setLedStateToCube();
     int button_readVal2 = digitalRead(input[0]);
-    
+
     if (button_readVal1 == button_readVal2){ //still the same input value -> not a noise
       //Serial.println("state changed");
       input[1] = button_readVal2;
@@ -427,42 +434,42 @@ void determine_inputDirection(int button_pin){
         case A0: //14
           if (snakeDirection != y_down){
             Serial.println("y_up");
-            snakeDirection = y_up;            
+            snakeDirection = y_up;
           }
           break;
-     
+
         case A1: //15
           if (snakeDirection != y_up){
             Serial.println("y_down");
             snakeDirection = y_down;
           }
           break;
-  
+
         case A2: //16
           if (snakeDirection != x_down){
             Serial.println("x_up");
             snakeDirection = x_up;
           }
           break;
-  
+
         case A3: //17
           if (snakeDirection != x_up){
             Serial.println("x_down");
-            snakeDirection = x_down;          
+            snakeDirection = x_down;
           }
           break;
-  
+
         case A4: //18
           if (snakeDirection != z_down){
             Serial.println("z_up");
             snakeDirection = z_up;
           }
           break;
-        
+
         case A5: //19
           if (snakeDirection != z_up){
             Serial.println("z_down");
-            snakeDirection =  z_down; 
+            snakeDirection =  z_down;
           }
           break;
       }
@@ -490,6 +497,11 @@ void loop() {
   /*(// put your main code here, to run repeatedly:
   testEachLed();*/
   if (start_button_debounce(start_button_state)){
+    //add one to play count
+    incrementIntEeprom(GAME_PLAY_COUNT_ADDR);
+    //store the previous players score
+    incrementIntEeprom(GAME_SCORE_COUNT_ADDR + playerScore*2);
+
     gamestate = on;
     initSnakeGame();
   }
@@ -497,20 +509,20 @@ void loop() {
   if (gamestate == on){
     //Ann
     getInput();
-  
+
     //Jackie
     if(snakeMoveDelay == MOVE_SNAKE_DELAY){
       upd_ledmtx();
       //display_score(playerScore);
-      snakeMoveDelay = 0;  
+      snakeMoveDelay = 0;
     }
     else{
       snakeMoveDelay++;
     }
-  
+
     //Gio
-    drawLedCube();    
-    
+    drawLedCube();
+
   }
   else{
     if(gameOverDelayCount < 8){
@@ -534,3 +546,50 @@ void loop() {
 
 }
 
+/*
+ * Write the the int to the address in EEPROM
+ *
+ * Storing an int requires sizeof(int) {2} address indexes, starting from address
+ *
+ * @return int of the next available address after the write
+ */
+int writeIntEeprom(int address, int val){
+  int i;
+  Serial.print("Writing ");
+  Serial.print(val);
+  Serial.print(" to 0x");
+  Serial.println(address);
+  for(i=0; i<sizeof(int); i++){
+    EEPROM.write(address + i,
+      (byte)((val>>i*8)&0x0FF));
+  }
+  return address + i;
+}
+
+/*
+ * Read an int in eeprom at the address.
+ *
+ * @return int value stored in memory.
+ */
+int readIntEeprom(int address){
+  int val = 0;
+  int part;
+  for(int i=0; i<sizeof(int); i++){
+    part = EEPROM.read(address + i);
+    val += (part<<i*8);
+  }
+  Serial.print("Read ");
+  Serial.print(val);
+  Serial.print(" from 0x");
+  Serial.println(address);
+  return val;
+}
+
+ /*
+  * Increment value in memory by one and save it.
+  */
+void incrementIntEeprom(int address){
+  int val = readIntEeprom(address);
+  val += 1;
+  writeIntEeprom(address, val);
+}
